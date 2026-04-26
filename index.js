@@ -23,30 +23,18 @@ const CHANNEL_ID = process.env.CHANNEL_ID;
 const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID;
 
 let mainMessageId;
-let totalRequests = 0;
-let lastReset = "Chưa có";
-
-// cooldown (30s)
 const cooldown = new Map();
 
-// ===== TẠO EMBED CHÍNH =====
-function createMainEmbed() {
+// ===== EMBED CHÍNH =====
+function mainEmbed() {
   return new EmbedBuilder()
     .setTitle("🔑 HỆ THỐNG RESET KEY")
-    .setDescription(
-      "```fix\nHệ thống tự động reset key\n```"
-    )
-    .addFields(
-      { name: "⚙️ Trạng thái", value: "🟢 Hoạt động", inline: true },
-      { name: "📊 Tổng request", value: `${totalRequests}`, inline: true },
-      { name: "⏱ Reset gần nhất", value: lastReset, inline: false },
-      {
-        name: "📌 Các loại key",
-        value: "• Fluotire\n• Proxy\n• Drip Client"
-      }
-    )
+    .setDescription("Nhấn nút bên dưới để reset key")
+    .addFields({
+      name: "📌 Các loại key",
+      value: "• Fluotire\n• Proxy\n• Drip Client"
+    })
     .setColor("#00bfff")
-    .setFooter({ text: "Reset System • Auto Bot" })
     .setTimestamp();
 }
 
@@ -56,25 +44,22 @@ client.once("ready", async () => {
 
   const channel = await client.channels.fetch(CHANNEL_ID);
 
-  const button = new ButtonBuilder()
-    .setCustomId("reset_key")
-    .setLabel("🚀 Reset Key")
-    .setStyle(ButtonStyle.Primary);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("reset_key")
+      .setLabel("🚀 Reset Key")
+      .setStyle(ButtonStyle.Primary)
+  );
 
-  const row = new ActionRowBuilder().addComponents(button);
+  const msgs = await channel.messages.fetch({ limit: 10 });
+  const old = msgs.find(m => m.author.id === client.user.id);
 
-  const messages = await channel.messages.fetch({ limit: 10 });
-  const existing = messages.find(m => m.author.id === client.user.id);
-
-  if (existing) {
-    mainMessageId = existing.id;
-    await existing.edit({
-      embeds: [createMainEmbed()],
-      components: [row]
-    });
+  if (old) {
+    mainMessageId = old.id;
+    await old.edit({ embeds: [mainEmbed()], components: [row] });
   } else {
     const msg = await channel.send({
-      embeds: [createMainEmbed()],
+      embeds: [mainEmbed()],
       components: [row]
     });
     mainMessageId = msg.id;
@@ -89,12 +74,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     const userId = interaction.user.id;
 
-    // ===== COOLDOWN =====
     if (cooldown.has(userId)) {
-      const timeLeft = (cooldown.get(userId) - Date.now()) / 1000;
-      if (timeLeft > 0) {
+      const time = (cooldown.get(userId) - Date.now()) / 1000;
+      if (time > 0) {
         return interaction.reply({
-          content: `⏳ Đợi ${timeLeft.toFixed(1)}s rồi thử lại!`,
+          content: `⏳ Đợi ${time.toFixed(1)}s`,
           ephemeral: true
         });
       }
@@ -131,7 +115,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
           .setCustomId("key")
-          .setLabel("Key của bạn")
+          .setLabel("Nhập key")
           .setStyle(TextInputStyle.Short)
       )
     );
@@ -145,17 +129,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const type = interaction.customId.replace("modal_", "");
     const key = interaction.fields.getTextInputValue("key");
 
-    totalRequests++;
-
     const embed = new EmbedBuilder()
-      .setTitle("📩 Yêu cầu reset")
+      .setTitle("📩 YÊU CẦU RESET KEY")
+      .setColor("#f1c40f")
       .addFields(
-        { name: "Loại key", value: type },
-        { name: "Key", value: key },
-        { name: "User", value: `<@${interaction.user.id}>` }
+        { name: "👤 Người yêu cầu", value: `<@${interaction.user.id}>` },
+        { name: "🔑 Loại key", value: type },
+        { name: "📋 Key", value: `\`${key}\`` },
+        { name: "📊 Trạng thái", value: "🟡 Đang chờ" },
+        { name: "⏱ Thời gian", value: `<t:${Math.floor(Date.now()/1000)}:F>` }
       )
-      .setColor("Yellow")
-      .setTimestamp();
+      .setFooter({ text: `ID:${interaction.user.id}` });
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -172,26 +156,36 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const adminChannel = await client.channels.fetch(ADMIN_CHANNEL_ID);
     await adminChannel.send({ embeds: [embed], components: [row] });
 
-    await interaction.reply({
-      content: "✅ Đã gửi yêu cầu!",
-      ephemeral: true
-    });
-
-    // update embed chính
-    const channel = await client.channels.fetch(CHANNEL_ID);
-    const msg = await channel.messages.fetch(mainMessageId);
-    await msg.edit({ embeds: [createMainEmbed()] });
+    await interaction.reply({ content: "✅ Đã gửi yêu cầu!", ephemeral: true });
   }
 
-  // ===== DENY =====
+  // ===== TỪ CHỐI =====
   if (interaction.isButton() && interaction.customId.startsWith("no_")) {
 
     const userId = interaction.customId.split("_")[1];
 
-    await interaction.update({ components: [] });
+    const embed = EmbedBuilder.from(interaction.message.embeds[0])
+      .setColor("Red")
+      .spliceFields(3, 1, { name: "📊 Trạng thái", value: "❌ Đã từ chối" });
+
+    await interaction.update({
+      embeds: [embed],
+      components: []
+    });
 
     const user = await client.users.fetch(userId);
-    user.send("❌ Yêu cầu của bạn đã bị từ chối.");
+
+    const userEmbed = new EmbedBuilder()
+      .setTitle("🔔 KẾT QUẢ RESET KEY")
+      .setColor("Red")
+      .addFields(
+        { name: "🔑 Loại key", value: embed.data.fields[1].value },
+        { name: "📋 Key", value: "`Yêu cầu bị từ chối`" },
+        { name: "📊 Trạng thái", value: "❌ Từ chối" },
+        { name: "⏱ Thời gian", value: `<t:${Math.floor(Date.now()/1000)}:F>` }
+      );
+
+    user.send({ embeds: [userEmbed] });
   }
 
   // ===== ACCEPT =====
@@ -221,29 +215,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const [_, userId, type] = interaction.customId.split("_");
     const newKey = interaction.fields.getTextInputValue("newkey");
 
-    lastReset = new Date().toLocaleString();
+    const embed = EmbedBuilder.from(interaction.message.embeds[0])
+      .setColor("Green")
+      .spliceFields(3, 1, { name: "📊 Trạng thái", value: "✅ Đã reset" })
+      .addFields({ name: "🆕 Key mới", value: `\`${newKey}\`` });
 
-    await interaction.update({ components: [] });
+    await interaction.update({
+      embeds: [embed],
+      components: []
+    });
 
     const user = await client.users.fetch(userId);
 
-    await user.send({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("🔑 Key đã reset")
-          .addFields(
-            { name: "Loại key", value: type },
-            { name: "Key", value: `\`${newKey}\`` },
-            { name: "Trạng thái", value: "✅ Thành công" }
-          )
-          .setColor("Green")
-      ]
-    });
+    const userEmbed = new EmbedBuilder()
+      .setTitle("🔔 KẾT QUẢ RESET KEY")
+      .setColor("Green")
+      .addFields(
+        { name: "🔑 Loại key", value: type },
+        { name: "📋 Key", value: `\`${newKey}\`` },
+        { name: "📊 Trạng thái", value: "✅ Thành công" },
+        { name: "⏱ Thời gian", value: `<t:${Math.floor(Date.now()/1000)}:F>` }
+      );
 
-    // update embed chính
-    const channel = await client.channels.fetch(CHANNEL_ID);
-    const msg = await channel.messages.fetch(mainMessageId);
-    await msg.edit({ embeds: [createMainEmbed()] });
+    user.send({ embeds: [userEmbed] });
   }
 
 });
