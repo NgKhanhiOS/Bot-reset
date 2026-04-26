@@ -30,13 +30,13 @@ const cooldown = new Map();
 // ===== EMBED CHÍNH =====
 function mainEmbed() {
   return new EmbedBuilder()
-    .setTitle("🔑 HỆ THỐNG RESET KEY")
+    .setTitle("👑 HỆ THỐNG RESET KEY AUTO")
     .setDescription(
       "```yaml\nHệ thống reset key tự động\n\nCác loại key:\n  - Fluorite\n  - Proxy\n  - Drip Client\n```"
     )
     .addFields({
-      name: "📊 Trạng thái",
-      value: "🟢 Hoạt động"
+      name: "🌐 Trạng thái : Hoạt động🟢",
+      value: "⚡ Premium Bot System - By Khánh"
     })
     .setColor("#00bfff")
     .setTimestamp();
@@ -56,7 +56,7 @@ client.once("ready", async () => {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("reset_key")
-      .setLabel("🚀 Reset Key")
+      .setLabel("🔑 Reset Key")
       .setStyle(ButtonStyle.Primary)
   );
 
@@ -145,7 +145,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         { name: "👤 Người yêu cầu", value: `<@${interaction.user.id}>` },
         { name: "🔑 Loại key", value: type },
         { name: "📋 Key", value: `\`${key}\`` },
-        { name: "📊 Trạng thái", value: "🟡 Đang chờ" }
+        { name: "🌐 Trạng thái", value: "🟡 Đang chờ" }
       )
       .setFooter({ text: `ID:${interaction.user.id}` });
 
@@ -164,7 +164,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const adminChannel = await client.channels.fetch(ADMIN_CHANNEL_ID);
     await adminChannel.send({ embeds: [embed], components: [row] });
 
-    await interaction.reply({ content: "✅ Đã gửi yêu cầu!", ephemeral: true });
+    await interaction.reply({ content: "✅ Đã gửi yêu cầu reset!", ephemeral: true });
   }
 
   // ===== ADMIN DENY =====
@@ -178,7 +178,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     const embed = EmbedBuilder.from(interaction.message.embeds[0])
       .setColor("Red")
-      .spliceFields(3, 1, { name: "📊 Trạng thái", value: "❌ Đã từ chối" });
+      .spliceFields(3, 1, { name: "🌐 Trạng thái", value: "❌ Yêu cầu bị từ chối" });
 
     await interaction.update({ embeds: [embed], components: [] });
 
@@ -187,12 +187,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
     user.send({
       embeds: [
         new EmbedBuilder()
-          .setTitle("🔔 KẾT QUẢ RESET KEY")
+          .setTitle("📩 Từ chối yêu cầu")
           .setColor("Red")
           .addFields(
             { name: "🔑 Loại key", value: embed.data.fields[1].value },
-            { name: "📋 Key", value: "`Yêu cầu bị từ chối`" },
-            { name: "📊 Trạng thái", value: "❌ Từ chối" }
+            { name: "📋 Key", value: `\`${key}\`` },
+            { name: "🌐 Trạng thái", value: "Yêu cầu bị từ chối" }
           )
       ]
     });
@@ -231,7 +231,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     const embed = EmbedBuilder.from(interaction.message.embeds[0])
       .setColor("Green")
-      .spliceFields(3, 1, { name: "📊 Trạng thái", value: "✅ Đã reset" })
+      .spliceFields(3, 1, { name: "🌐 Trạng thái", value: "Key đã được reset" })
       .addFields({ name: "🆕 Key mới", value: `\`${newKey}\`` });
 
     await interaction.update({ embeds: [embed], components: [] });
@@ -241,12 +241,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
     user.send({
       embeds: [
         new EmbedBuilder()
-          .setTitle("🔔 KẾT QUẢ RESET KEY")
+          .setTitle("📩 Chấp nhận yêu cầu")
           .setColor("Green")
           .addFields(
             { name: "🔑 Loại key", value: type },
             { name: "📋 Key", value: `\`${newKey}\`` },
-            { name: "📊 Trạng thái", value: "✅ Thành công" }
+            { name: "🌐 Trạng thái", value: "Key của bạn đã được reset" }
           )
       ]
     });
