@@ -11,8 +11,7 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  Events,
-  PermissionsBitField
+  Events
 } = require("discord.js");
 
 const client = new Client({
@@ -27,24 +26,36 @@ const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 let mainMessageId;
 const cooldown = new Map();
 
-// ===== EMBED CHÍNH =====
-function mainEmbed() {
-  return new EmbedBuilder()
-    .setTitle("👑 HỆ THỐNG RESET KEY AUTO")
-    .setDescription(
-      "```yaml\nHệ thống reset key tự động\n\nCác loại key:\n  - Fluorite\n  - Proxy\n  - Drip Client\n```"
-    )
-    .addFields({
-      name: "🌐 Trạng thái : Hoạt động🟢",
-      value: "⚡ Premium Bot System - By Khánh"
-    })
-    .setColor("#00bfff")
-    .setTimestamp();
-}
-
 // ===== CHECK ADMIN =====
 function isAdmin(member) {
   return member.roles.cache.has(ADMIN_ROLE_ID);
+}
+
+// ===== MAIN EMBED PREMIUM =====
+function mainEmbed() {
+  return new EmbedBuilder()
+    .setAuthor({
+      name: "Reset System",
+      iconURL: client.user.displayAvatarURL()
+    })
+    .setDescription(
+"```ansi\n\u001b[1;36mHỆ THỐNG RESET KEY TỰ ĐỘNG\u001b[0m\n```"
+    )
+    .addFields(
+      {
+        name: "📦 DANH SÁCH KEY",
+        value: "```fix\n• Fluorite\n• Proxy\n• Drip Client\n```"
+      },
+      {
+        name: "⚡ TRẠNG THÁI",
+        value: "```diff\n+ Hoạt động\n```",
+        inline: true
+      }
+    )
+    .setColor("#00bfff")
+    .setThumbnail(client.user.displayAvatarURL())
+    .setFooter({ text: "Premium Reset System" })
+    .setTimestamp();
 }
 
 // ===== READY =====
@@ -56,8 +67,9 @@ client.once("ready", async () => {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("reset_key")
-      .setLabel("🔑 Reset Key")
-      .setStyle(ButtonStyle.Primary)
+      .setLabel("Reset Key")
+      .setEmoji("🔑")
+      .setStyle(ButtonStyle.Success)
   );
 
   const msgs = await channel.messages.fetch({ limit: 10 });
@@ -139,46 +151,67 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const key = interaction.fields.getTextInputValue("key");
 
     const embed = new EmbedBuilder()
-      .setTitle("📩 YÊU CẦU RESET KEY")
+      .setTitle("📩 RESET REQUEST")
       .setColor("#f1c40f")
       .addFields(
-        { name: "👤 Người yêu cầu", value: `<@${interaction.user.id}>` },
-        { name: "🔑 Loại key", value: type },
-        { name: "📋 Key", value: `\`${key}\`` },
-        { name: "🌐 Trạng thái", value: "🟡 Đang chờ" }
+        {
+          name: "👤 USER",
+          value: `\`\`\`${interaction.user.tag}\`\`\``,
+          inline: true
+        },
+        {
+          name: "🔑 TYPE",
+          value: `\`\`\`${type}\`\`\``,
+          inline: true
+        },
+        {
+          name: "📋 KEY",
+          value: `\`${key}\``
+        },
+        {
+          name: "🌐 STATUS",
+          value: "```diff\n- WAITING\n```"
+        }
       )
-      .setFooter({ text: `ID:${interaction.user.id}` });
+      .setFooter({
+        text: `ID: ${interaction.user.id}`,
+        iconURL: interaction.user.displayAvatarURL()
+      })
+      .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`ok_${interaction.user.id}_${type}`)
-        .setLabel("Reset")
+        .setLabel("Accept")
         .setStyle(ButtonStyle.Success),
 
       new ButtonBuilder()
         .setCustomId(`no_${interaction.user.id}`)
-        .setLabel("Từ chối")
+        .setLabel("Deny")
         .setStyle(ButtonStyle.Danger)
     );
 
     const adminChannel = await client.channels.fetch(ADMIN_CHANNEL_ID);
     await adminChannel.send({ embeds: [embed], components: [row] });
 
-    await interaction.reply({ content: "✅ Đã gửi yêu cầu reset!", ephemeral: true });
+    await interaction.reply({ content: "✅ Đã gửi yêu cầu!", ephemeral: true });
   }
 
-  // ===== ADMIN DENY =====
+  // ===== DENY =====
   if (interaction.isButton() && interaction.customId.startsWith("no_")) {
 
     if (!isAdmin(interaction.member)) {
-      return interaction.reply({ content: "❌ Bạn không phải admin!", ephemeral: true });
+      return interaction.reply({ content: "❌ Không có quyền", ephemeral: true });
     }
 
     const userId = interaction.customId.split("_")[1];
 
     const embed = EmbedBuilder.from(interaction.message.embeds[0])
       .setColor("Red")
-      .spliceFields(3, 1, { name: "🌐 Trạng thái", value: "❌ Yêu cầu bị từ chối" });
+      .spliceFields(3, 1, {
+        name: "🌐 STATUS",
+        value: "```diff\n- REJECTED\n```"
+      });
 
     await interaction.update({ embeds: [embed], components: [] });
 
@@ -187,22 +220,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
     user.send({
       embeds: [
         new EmbedBuilder()
-          .setTitle("📩 Từ chối yêu cầu")
+          .setTitle("🔔 RESULT")
           .setColor("Red")
           .addFields(
-            { name: "🔑 Loại key", value: embed.data.fields[1].value },
-            { name: "📋 Key", value: `\`${key}\`` },
-            { name: "🌐 Trạng thái", value: "Yêu cầu bị từ chối" }
+            { name: "🔑 TYPE", value: embed.data.fields[1].value },
+            { name: "📋 KEY", value: "`Yêu cầu bị từ chối`" },
+            { name: "🌐 STATUS", value: "```diff\n- REJECTED\n```" }
           )
       ]
     });
   }
 
-  // ===== ADMIN ACCEPT =====
+  // ===== ACCEPT =====
   if (interaction.isButton() && interaction.customId.startsWith("ok_")) {
 
     if (!isAdmin(interaction.member)) {
-      return interaction.reply({ content: "❌ Bạn không phải admin!", ephemeral: true });
+      return interaction.reply({ content: "❌ Không có quyền", ephemeral: true });
     }
 
     const [_, userId, type] = interaction.customId.split("_");
@@ -231,8 +264,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     const embed = EmbedBuilder.from(interaction.message.embeds[0])
       .setColor("Green")
-      .spliceFields(3, 1, { name: "🌐 Trạng thái", value: "Key đã được reset" })
-      .addFields({ name: "🆕 Key mới", value: `\`${newKey}\`` });
+      .spliceFields(3, 1, {
+        name: "🌐 STATUS",
+        value: "```diff\n+ SUCCESS\n```"
+      })
+      .addFields({
+        name: "🆕 NEW KEY RESET",
+        value: `\`${newKey}\``
+      });
 
     await interaction.update({ embeds: [embed], components: [] });
 
@@ -241,12 +280,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
     user.send({
       embeds: [
         new EmbedBuilder()
-          .setTitle("📩 Chấp nhận yêu cầu")
+          .setTitle("🔔 RESULT")
           .setColor("Green")
           .addFields(
-            { name: "🔑 Loại key", value: type },
-            { name: "📋 Key", value: `\`${newKey}\`` },
-            { name: "🌐 Trạng thái", value: "Key của bạn đã được reset" }
+            { name: "🔑 TYPE", value: type },
+            { name: "📋 KEY", value: `\`${newKey}\`` },
+            { name: "🌐 STATUS", value: "```diff\n+ SUCCESS\n```" }
           )
       ]
     });
