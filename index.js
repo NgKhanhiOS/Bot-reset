@@ -35,26 +35,26 @@ function isAdmin(member) {
 function mainEmbed() {
   return new EmbedBuilder()
     .setAuthor({
-      name: "Reset System",
+      name: "SYSTEM RESET KEY",
       iconURL: client.user.displayAvatarURL()
     })
     .setDescription(
-"```ansi\n\u001b[1;36mHỆ THỐNG RESET KEY TỰ ĐỘNG\u001b[0m\n```"
+"```ansi\n\u001b[1;36mSystem Reset Key Free\u001b[0m\n```"
     )
     .addFields(
       {
-        name: "📦 DANH SÁCH KEY",
+        name: "⭐️ LIST KEY CAN RESET",
         value: "```fix\n• Fluorite\n• Proxy\n• Drip Client\n```"
       },
       {
-        name: "⚡ TRẠNG THÁI",
+        name: "⚡ SERVER",
         value: "```diff\n+ Hoạt động\n```",
         inline: true
       }
     )
     .setColor("#00bfff")
     .setThumbnail(client.user.displayAvatarURL())
-    .setFooter({ text: "Premium Reset System" })
+    .setFooter({ text: "Premium Reset Bot System" })
     .setTimestamp();
 }
 
@@ -194,7 +194,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const adminChannel = await client.channels.fetch(ADMIN_CHANNEL_ID);
     await adminChannel.send({ embeds: [embed], components: [row] });
 
-    await interaction.reply({ content: "✅ Đã gửi yêu cầu!", ephemeral: true });
+    await interaction.reply({ content: "📩 Đã gửi yêu cầu reset key", ephemeral: true });
   }
 
   // ===== DENY =====
